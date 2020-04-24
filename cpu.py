@@ -13,11 +13,15 @@ class CPU:
         # memory or RAM, 256 bytes (1 byte = 8 bits)
         self.running = True
         self.ram = [0] * 256
-        self.reg = [0] * 8  # register
+        self.reg = [0] * 8  # general purpose register
+        self.fl_reg = [0] * 8  # flag register
         self.sp = 7
+        self.less_than = 5
+        self.greater_than = 6
+        self.equal_to = 7
         self.reg[self.sp] = 0xf4
         self.pc = 0   # program counter (pc)
-        self.alu = ALU(self.running, self.ram, self.reg)
+        self.alu = ALU(self.running, self.ram, self.reg, self.fl_reg)
         self.function_table = {}  # * AKA jump table or branch table
         self.function_table[0b01000111] = self.prn
         self.function_table[0b00000001] = self.hlt
@@ -29,6 +33,11 @@ class CPU:
         self.function_table[0b01010000] = self.call
         self.function_table[0b00010001] = self.ret
 
+        self.function_table[0b01010110] = self.jne
+        self.function_table[0b01010111] = self.jgt
+        self.function_table[0b01011010] = self.jge
+        self.function_table[0b01010101] = self.jeq
+        self.function_table[0b10100111] = self.alu._cmp
         self.function_table[0b10100000] = self.alu.add
         self.function_table[0b10100011] = self.alu.div
         self.function_table[0b01100110] = self.alu.dec
@@ -60,6 +69,22 @@ class CPU:
 
     def jmp(self, op_a, op_b):
         self.pc = self.reg[op_a]
+
+    def jeq(self, op_a, op_b):
+        if self.fl_reg[self.equal_to] == 1:
+            self.jmp(op_a, op_b)
+
+    def jge(self, op_a, op_b):
+        if self.fl_reg[self.greater_than] == 1 or self.fl_reg[self.equal_to] == 1:
+            self.jmp(op_a, op_b)
+
+    def jgt(self, op_a, op_b):
+        if self.fl_reg[self.greater_than] == 1:
+            self.jmp(op_a, op_b)
+
+    def jne(self, op_a, op_b):
+        if self.fl_reg[self.equal_to] == 0:
+            self.jmp(op_a, op_b)
 
     def call(self, op_a, op_b):
         self.reg[self.sp] -= 1
@@ -147,7 +172,7 @@ class CPU:
             # *ir == instruction reader
             ir = self.ram_read(self.pc)
             ir_int = int(str(ir), 2)
-            if ir_int == 0b01010100 or ir_int == 0b01010000 or ir_int == 0b00010001:
+            if ir_int == 0b01010100 or ir_int == 0b01010000 or ir_int == 0b00010001 or ir_int == 0b01010101 or ir_int == 0b01011010 or ir_int == 0b01010111 or ir_int == 0b01010110:
                 # these functions intentionally set pc so no need to increment
                 increment_by = 0
             else:
