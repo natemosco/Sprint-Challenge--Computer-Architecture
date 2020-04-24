@@ -12,10 +12,11 @@ class CPU:
         """Construct a new CPU."""
         # memory or RAM, 256 bytes (1 byte = 8 bits)
         self.running = True
-        self.ram = [0] * 256
         self.reg = [0] * 8  # general purpose register
+        self.ram = [0] * 256
         self.fl_reg = [0] * 8  # flag register
         self.sp = 7
+        self.increment_by = 0
         self.less_than = 5
         self.greater_than = 6
         self.equal_to = 7
@@ -73,18 +74,26 @@ class CPU:
     def jeq(self, op_a, op_b):
         if self.fl_reg[self.equal_to] == 1:
             self.jmp(op_a, op_b)
+        else:
+            self.increment_by = 2
 
     def jge(self, op_a, op_b):
         if self.fl_reg[self.greater_than] == 1 or self.fl_reg[self.equal_to] == 1:
             self.jmp(op_a, op_b)
+        else:
+            self.increment_by = 2
 
     def jgt(self, op_a, op_b):
         if self.fl_reg[self.greater_than] == 1:
             self.jmp(op_a, op_b)
+        else:
+            self.increment_by = 2
 
     def jne(self, op_a, op_b):
         if self.fl_reg[self.equal_to] == 0:
             self.jmp(op_a, op_b)
+        else:
+            self.increment_by = 2
 
     def call(self, op_a, op_b):
         self.reg[self.sp] -= 1
@@ -174,11 +183,11 @@ class CPU:
             ir_int = int(str(ir), 2)
             if ir_int == 0b01010100 or ir_int == 0b01010000 or ir_int == 0b00010001 or ir_int == 0b01010101 or ir_int == 0b01011010 or ir_int == 0b01010111 or ir_int == 0b01010110:
                 # these functions intentionally set pc so no need to increment
-                increment_by = 0
+                self.increment_by = 0
             else:
                 # increment by opcode AND num of variables needed by opcode
-                increment_by = 1
-                increment_by += (int(str(ir), 2) & 0b11000000) >> 6
+                self.increment_by = 1
+                self.increment_by += (int(str(ir), 2) & 0b11000000) >> 6
 
             if int(str(ir), 2) in self.function_table:
                 ram_a = self.ram_read(self.pc + 1)
@@ -192,6 +201,6 @@ class CPU:
                     f"Unrecognized instruction please review instruction:{ir}(binary) {int(str(ir),2)} decimal")
                 self.running = False
 
-            self.pc += increment_by
+            self.pc += self.increment_by
 
             # self.trace()
